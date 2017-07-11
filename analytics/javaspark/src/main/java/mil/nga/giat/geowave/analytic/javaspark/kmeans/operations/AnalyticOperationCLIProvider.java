@@ -8,7 +8,7 @@
  * Version 2.0 which accompanies this distribution and is available at
  * http://www.apache.org/licenses/LICENSE-2.0.txt
  ******************************************************************************/
-package mil.nga.giat.geowave.analytic.javaspark.operations;
+package mil.nga.giat.geowave.analytic.javaspark.kmeans.operations;
 
 import mil.nga.giat.geowave.analytic.mapreduce.operations.AnalyticSection;
 import mil.nga.giat.geowave.core.cli.spi.CLIOperationProviderSpi;
