@@ -1,3 +1,5 @@
+package mil.nga.giat.geowave.test.javaspark;
+
 /*******************************************************************************
  * Copyright (c) 2013-2017 Contributors to the Eclipse Foundation
  * 
@@ -8,15 +10,17 @@
  * Version 2.0 which accompanies this distribution and is available at
  * http://www.apache.org/licenses/LICENSE-2.0.txt
  ******************************************************************************/
-package mil.nga.giat.geowave.test.javaspark;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.URL;
 
-import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.MapFunction;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Encoders;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -29,12 +33,9 @@ import org.slf4j.LoggerFactory;
 import com.vividsolutions.jts.util.Stopwatch;
 
 import mil.nga.giat.geowave.analytic.javaspark.GeoWaveRDD;
-import mil.nga.giat.geowave.core.index.StringUtils;
-import mil.nga.giat.geowave.core.store.CloseableIterator;
-import mil.nga.giat.geowave.core.store.adapter.DataAdapter;
+import mil.nga.giat.geowave.analytic.javaspark.sparksql.SimpleFeatureDataFrame;
 import mil.nga.giat.geowave.core.store.operations.remote.options.DataStorePluginOptions;
 import mil.nga.giat.geowave.core.store.query.DistributableQuery;
-import mil.nga.giat.geowave.core.store.query.QueryOptions;
 import mil.nga.giat.geowave.mapreduce.input.GeoWaveInputKey;
 import mil.nga.giat.geowave.test.GeoWaveITRunner;
 import mil.nga.giat.geowave.test.TestUtils;
@@ -45,11 +46,11 @@ import mil.nga.giat.geowave.test.annotation.GeoWaveTestStore.GeoWaveStoreType;
 import mil.nga.giat.geowave.test.basic.AbstractGeoWaveBasicVectorIT;
 
 @RunWith(GeoWaveITRunner.class)
-public class GeoWaveJavaSparkIT extends
+public class GeoWaveJavaSparkSQLIT extends
 		AbstractGeoWaveBasicVectorIT
 {
 	private final static Logger LOGGER = LoggerFactory.getLogger(
-			GeoWaveJavaSparkIT.class);
+			GeoWaveJavaSparkSQLIT.class);
 
 	private static final String TEST_BOX_FILTER_FILE = TEST_FILTER_PACKAGE + "Box-Filter.shp";
 	private static final String TEST_POLYGON_FILTER_FILE = TEST_FILTER_PACKAGE + "Polygon-Filter.shp";
@@ -76,7 +77,7 @@ public class GeoWaveJavaSparkIT extends
 		LOGGER.warn(
 				"*                                       *");
 		LOGGER.warn(
-				"*  RUNNING GeoWaveJavaSparkIT           *");
+				"*  RUNNING GeoWaveJavaSparkSQLIT        *");
 		LOGGER.warn(
 				"*                                       *");
 		LOGGER.warn(
@@ -91,7 +92,7 @@ public class GeoWaveJavaSparkIT extends
 		LOGGER.warn(
 				"*                                       *");
 		LOGGER.warn(
-				"* FINISHED GeoWaveJavaSparkIT           *");
+				"* FINISHED GeoWaveJavaSparkSQLIT        *");
 		LOGGER.warn(
 				"*         " + stopwatch.getTimeString() + " elapsed.             *");
 		LOGGER.warn(
@@ -101,16 +102,18 @@ public class GeoWaveJavaSparkIT extends
 	}
 
 	@Test
-	public void testLoadRDD() {
+	public void testCreateDataFrame() {
 		// Set up Spark
-		SparkConf sparkConf = new SparkConf();
+		SparkSession spark = SparkSession
+				.builder()
+				.master(
+						"local")
+				.appName(
+						"Java Spark SQL basic example")
+				.getOrCreate();
 
-		sparkConf.setAppName(
-				"GeoWaveRDD");
-		sparkConf.setMaster(
-				"local");
 		JavaSparkContext context = new JavaSparkContext(
-				sparkConf);
+				spark.sparkContext());
 
 		// ingest test points
 		TestUtils.testLocalIngest(
@@ -145,6 +148,28 @@ public class GeoWaveJavaSparkIT extends
 			Assert.assertEquals(
 					expectedResults.count,
 					count);
+
+			// Test the RDD to Schema mapper
+			SimpleFeatureDataFrame sfDataFrame = new SimpleFeatureDataFrame(
+					spark,
+					dataStore,
+					null);
+			
+			LOGGER.warn(
+					sfDataFrame.getSchema().json());
+			
+			sfDataFrame.initRowRDD(javaRdd);
+
+			Dataset<Row> df = sfDataFrame.createDataFrame();
+			df.createOrReplaceTempView("features");
+			
+			Dataset<Row> results = spark.sql("SELECT FIPS FROM features");
+			
+			Dataset<String> fipsDS = results.map(
+				    (MapFunction<Row, String>) row -> "fips: " + row.getString(0),
+				    Encoders.STRING());
+			
+			fipsDS.show();
 		}
 		catch (final Exception e) {
 			e.printStackTrace();
@@ -154,124 +179,6 @@ public class GeoWaveJavaSparkIT extends
 			Assert.fail(
 					"Error occurred while testing a bounding box query of spatial index: '" + e.getLocalizedMessage()
 							+ "'");
-		}
-		try {
-			// get expected results (polygon filter)
-			final ExpectedResults expectedResults = TestUtils.getExpectedResults(
-					new URL[] {
-						new File(
-								HAIL_EXPECTED_POLYGON_FILTER_RESULTS_FILE).toURI().toURL()
-					});
-
-			final DistributableQuery query = TestUtils.resourceToQuery(
-					new File(
-							TEST_POLYGON_FILTER_FILE).toURI().toURL());
-
-			// Load RDD using spatial query (poly)
-			JavaPairRDD<GeoWaveInputKey, SimpleFeature> javaRdd = GeoWaveRDD.rddForSimpleFeatures(
-					context.sc(),
-					dataStore,
-					query);
-
-			long count = javaRdd.count();
-			LOGGER.warn(
-					"DataStore loaded into RDD with " + count + " features.");
-
-			Assert.assertEquals(
-					expectedResults.count,
-					count);
-		}
-		catch (final Exception e) {
-			e.printStackTrace();
-			TestUtils.deleteAll(
-					dataStore);
-			context.close();
-			Assert.fail(
-					"Error occurred while testing a polygon query of spatial index: '" + e.getLocalizedMessage() + "'");
-		}
-
-		// ingest test lines
-		TestUtils.testLocalIngest(
-				dataStore,
-				DimensionalityType.SPATIAL,
-				TORNADO_TRACKS_SHAPEFILE_FILE,
-				1);
-
-		// Retrieve the adapters
-		CloseableIterator<DataAdapter<?>> adapterIt = dataStore.createAdapterStore().getAdapters();
-		DataAdapter hailAdapter = null;
-		DataAdapter tornadoAdapter = null;
-
-		while (adapterIt.hasNext()) {
-			DataAdapter adapter = adapterIt.next();
-			String adapterName = StringUtils.stringFromBinary(
-					adapter.getAdapterId().getBytes());
-
-			if (adapterName.equals(
-					"hail")) {
-				hailAdapter = adapter;
-			}
-			else {
-				tornadoAdapter = adapter;
-			}
-
-			LOGGER.warn(
-					"DataStore has feature adapter: " + adapterName);
-		}
-
-		// Load RDD using hail adapter
-		try {
-			JavaPairRDD<GeoWaveInputKey, SimpleFeature> javaRdd = GeoWaveRDD.rddForSimpleFeatures(
-					context.sc(),
-					dataStore,
-					null,
-					new QueryOptions(
-							hailAdapter));
-
-			long count = javaRdd.count();
-
-			Assert.assertEquals(
-					HAIL_COUNT,
-					count);
-
-			LOGGER.warn(
-					"DataStore loaded into RDD with " + count + " features for adapter " + StringUtils.stringFromBinary(
-							hailAdapter.getAdapterId().getBytes()));
-		}
-		catch (IOException e) {
-			e.printStackTrace();
-			TestUtils.deleteAll(
-					dataStore);
-			context.close();
-			Assert.fail(
-					"Error occurred while loading RDD with adapter: '" + e.getLocalizedMessage() + "'");
-		}
-
-		// Load RDD using tornado adapter
-		try {
-			JavaPairRDD<GeoWaveInputKey, SimpleFeature> javaRdd = GeoWaveRDD.rddForSimpleFeatures(
-					context.sc(),
-					dataStore,
-					null,
-					new QueryOptions(
-							tornadoAdapter));
-
-			long count = javaRdd.count();
-			LOGGER.warn(
-					"DataStore loaded into RDD with " + count + " features for adapter " + StringUtils.stringFromBinary(
-							tornadoAdapter.getAdapterId().getBytes()));
-
-			Assert.assertEquals(
-					TORNADO_COUNT,
-					count);
-		}
-		catch (IOException e) {
-			e.printStackTrace();
-			TestUtils.deleteAll(
-					dataStore);
-			context.close();
-			Assert.fail(
-					"Error occurred while loading RDD with adapter: '" + e.getLocalizedMessage() + "'");
 		}
 
 		// Clean up

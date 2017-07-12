@@ -5,8 +5,10 @@ import java.util.List;
 
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -27,13 +29,17 @@ public class SimpleFeatureDataFrame
 	private static Logger LOGGER = LoggerFactory.getLogger(
 			SimpleFeatureDataFrame.class);
 
+	private final SparkSession sparkSession;
 	private final SimpleFeatureType featureType;
 	private final StructType schema;
 	private JavaRDD<Row> rowRDD;
 
 	public SimpleFeatureDataFrame(
+			final SparkSession sparkSession,
 			final DataStorePluginOptions dataStore,
 			final ByteArrayId adapterId ) {
+		this.sparkSession = sparkSession;
+
 		featureType = FeatureDataUtils.getFeatureType(
 				dataStore,
 				adapterId);
@@ -60,6 +66,12 @@ public class SimpleFeatureDataFrame
 					return RowFactory.create(
 							feature.getAttributes());
 				});
+	}
+
+	public Dataset<Row> createDataFrame() {
+		return sparkSession.createDataFrame(
+				rowRDD,
+				schema);
 	}
 
 	private StructType schemaFromFeatureType() {
