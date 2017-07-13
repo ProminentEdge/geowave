@@ -160,9 +160,10 @@ public class GeoWaveJavaSparkSQLIT extends
 			
 			sfDataFrame.initRowRDD(javaRdd);
 
-			Dataset<Row> df = sfDataFrame.createDataFrame();
-			df.createOrReplaceTempView("features");
+			Dataset<Row> df = sfDataFrame.createDataFrame();			
+			df.show(10);
 			
+			df.createOrReplaceTempView("features");
 			Dataset<Row> results = spark.sql("SELECT FIPS FROM features");
 			
 			Dataset<String> fipsDS = results.map(
