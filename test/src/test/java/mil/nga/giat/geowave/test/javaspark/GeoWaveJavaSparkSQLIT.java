@@ -21,6 +21,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.types.UDTRegistration;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -30,10 +31,12 @@ import org.opengis.feature.simple.SimpleFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.util.Stopwatch;
 
 import mil.nga.giat.geowave.analytic.javaspark.GeoWaveRDD;
 import mil.nga.giat.geowave.analytic.javaspark.sparksql.SimpleFeatureDataFrame;
+import mil.nga.giat.geowave.analytic.javaspark.sparksql.udt.PointUDT;
 import mil.nga.giat.geowave.core.store.operations.remote.options.DataStorePluginOptions;
 import mil.nga.giat.geowave.core.store.query.DistributableQuery;
 import mil.nga.giat.geowave.mapreduce.input.GeoWaveInputKey;
@@ -154,22 +157,27 @@ public class GeoWaveJavaSparkSQLIT extends
 					spark,
 					dataStore,
 					null);
-			
+
 			LOGGER.warn(
 					sfDataFrame.getSchema().json());
-			
-			sfDataFrame.initRowRDD(javaRdd);
 
-			Dataset<Row> df = sfDataFrame.createDataFrame();			
-			df.show(10);
-			
-			df.createOrReplaceTempView("features");
-			Dataset<Row> results = spark.sql("SELECT FIPS FROM features");
-			
+			sfDataFrame.initRowRDD(
+					javaRdd);
+
+			Dataset<Row> df = sfDataFrame.createDataFrame();
+			df.show(
+					10);
+
+			df.createOrReplaceTempView(
+					"features");
+			Dataset<Row> results = spark.sql(
+					"SELECT FIPS FROM features");
+
 			Dataset<String> fipsDS = results.map(
-				    (MapFunction<Row, String>) row -> "fips: " + row.getString(0),
-				    Encoders.STRING());
-			
+					(MapFunction<Row, String>) row -> "fips: " + row.getString(
+							0),
+					Encoders.STRING());
+
 			fipsDS.show();
 		}
 		catch (final Exception e) {
