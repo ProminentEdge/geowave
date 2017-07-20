@@ -117,7 +117,7 @@ public class GeoWaveJavaSparkSQLIT extends
 
 		JavaSparkContext context = new JavaSparkContext(
 				spark.sparkContext());
-
+		
 		// ingest test points
 		TestUtils.testLocalIngest(
 				dataStore,
@@ -170,15 +170,21 @@ public class GeoWaveJavaSparkSQLIT extends
 
 			df.createOrReplaceTempView(
 					"features");
+			
+			String bbox = "POLYGON ((-94 34, -93 34, -93 35, -94 35, -94 34))";
+			
+//			Dataset<Row> results = df.selectExpr("GF_CONTAINS('" + bbox + ", geom')");
+			
 			Dataset<Row> results = spark.sql(
-					"SELECT FIPS FROM features");
+					"SELECT * FROM features WHERE GF_CONTAINS('" + bbox + ", geom')");
+			
+			LOGGER.warn("Got " + results.count() + " for gfcontains test");
 
-			Dataset<String> fipsDS = results.map(
-					(MapFunction<Row, String>) row -> "fips: " + row.getString(
-							0),
+			Dataset<String> geomDS = results.map(
+					(MapFunction<Row, String>) row -> "Date: " + row.getInt(3) + "/" + row.getInt(4) + "/" + row.getInt(5),
 					Encoders.STRING());
 
-			fipsDS.show();
+			geomDS.show(10);
 		}
 		catch (final Exception e) {
 			e.printStackTrace();

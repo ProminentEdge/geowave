@@ -1,6 +1,5 @@
 package mil.nga.giat.geowave.analytic.javaspark.sparksql;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -9,7 +8,6 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
@@ -22,10 +20,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.io.WKTReader;
-import com.vividsolutions.jts.io.WKTWriter;
 
 import mil.nga.giat.geowave.adapter.vector.util.FeatureDataUtils;
+import mil.nga.giat.geowave.analytic.javaspark.sparksql.udf.GeometryFunctions;
 import mil.nga.giat.geowave.core.index.ByteArrayId;
 import mil.nga.giat.geowave.core.store.operations.remote.options.DataStorePluginOptions;
 import mil.nga.giat.geowave.mapreduce.input.GeoWaveInputKey;
@@ -39,8 +36,6 @@ public class SimpleFeatureDataFrame
 	private final SimpleFeatureType featureType;
 	private StructType schema;
 	private JavaRDD<Row> rowRDD;
-	private static WKTWriter wktWriter = new WKTWriter();
-	private static WKTReader wktReader = new WKTReader();
 
 	public SimpleFeatureDataFrame(
 			final SparkSession sparkSession,
@@ -54,6 +49,9 @@ public class SimpleFeatureDataFrame
 
 		schema = schemaFromFeatureType(
 				featureType);
+
+		GeometryFunctions.registerGeometryFunctions(
+				sparkSession);
 	}
 
 	public SimpleFeatureType getFeatureType() {
@@ -70,35 +68,11 @@ public class SimpleFeatureDataFrame
 
 	public void initRowRDD(
 			JavaPairRDD<GeoWaveInputKey, SimpleFeature> pairRDD ) {
+		SimpleFeatureMapper mapper = new SimpleFeatureMapper(
+				schema);
+
 		rowRDD = pairRDD.values().map(
-				feature -> {
-					Serializable[] fields = new Serializable[schema.size()];
-
-					for (int i = 0; i < schema.size(); i++) {
-						StructField structField = schema.apply(
-								i);
-						if (structField.name().equals(
-								"geom")) {
-							fields[i] = wktWriter.write(
-									(Geometry) feature.getAttribute(
-											i));
-						}
-						else if (structField.dataType() == DataTypes.TimestampType) {
-							fields[i] = ((Date) feature.getAttribute(
-									i)).getTime();
-						}
-						else if (structField.dataType() != null) {
-							fields[i] = (Serializable)feature.getAttribute(
-									i);
-						}
-						else {
-							fields[i] = "";
-						}
-					}
-
-					return RowFactory.create(
-							fields);
-				});
+				mapper);
 	}
 
 	public Dataset<Row> createDataFrame() {
@@ -167,7 +141,7 @@ public class SimpleFeatureDataFrame
 		// Custom geometry types get WKB encoding
 		else if (Geometry.class.isAssignableFrom(
 				attrDesc.getType().getBinding())) {
-			dataTypeOut = DataTypes.StringType;
+			dataTypeOut = DataTypes.BinaryType;
 			isGeom = true;
 		}
 
