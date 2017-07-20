@@ -1,27 +1,10 @@
 package mil.nga.giat.geowave.test.javaspark;
 
-/*******************************************************************************
- * Copyright (c) 2013-2017 Contributors to the Eclipse Foundation
- * 
- * See the NOTICE file distributed with this work for additional
- * information regarding copyright ownership.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Apache License,
- * Version 2.0 which accompanies this distribution and is available at
- * http://www.apache.org/licenses/LICENSE-2.0.txt
- ******************************************************************************/
-
-import java.io.File;
-import java.net.URL;
-
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.types.UDTRegistration;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -31,19 +14,15 @@ import org.opengis.feature.simple.SimpleFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.util.Stopwatch;
 
 import mil.nga.giat.geowave.analytic.javaspark.GeoWaveRDD;
 import mil.nga.giat.geowave.analytic.javaspark.sparksql.SimpleFeatureDataFrame;
-import mil.nga.giat.geowave.analytic.javaspark.sparksql.udt.PointUDT;
 import mil.nga.giat.geowave.core.store.operations.remote.options.DataStorePluginOptions;
-import mil.nga.giat.geowave.core.store.query.DistributableQuery;
 import mil.nga.giat.geowave.mapreduce.input.GeoWaveInputKey;
 import mil.nga.giat.geowave.test.GeoWaveITRunner;
 import mil.nga.giat.geowave.test.TestUtils;
 import mil.nga.giat.geowave.test.TestUtils.DimensionalityType;
-import mil.nga.giat.geowave.test.TestUtils.ExpectedResults;
 import mil.nga.giat.geowave.test.annotation.GeoWaveTestStore;
 import mil.nga.giat.geowave.test.annotation.GeoWaveTestStore.GeoWaveStoreType;
 import mil.nga.giat.geowave.test.basic.AbstractGeoWaveBasicVectorIT;
@@ -110,14 +89,14 @@ public class GeoWaveJavaSparkSQLIT extends
 		SparkSession spark = SparkSession
 				.builder()
 				.master(
-						"local")
+						"local[*]")
 				.appName(
-						"Java Spark SQL basic example")
+						"JavaSparkSqlIT")
 				.getOrCreate();
 
 		JavaSparkContext context = new JavaSparkContext(
 				spark.sparkContext());
-		
+
 		// ingest test points
 		TestUtils.testLocalIngest(
 				dataStore,
@@ -126,31 +105,14 @@ public class GeoWaveJavaSparkSQLIT extends
 				1);
 
 		try {
-			// get expected results (box filter)
-			final ExpectedResults expectedResults = TestUtils.getExpectedResults(
-					new URL[] {
-						new File(
-								HAIL_EXPECTED_BOX_FILTER_RESULTS_FILE).toURI().toURL()
-					});
-
-			final DistributableQuery query = TestUtils.resourceToQuery(
-					new File(
-							TEST_BOX_FILTER_FILE).toURI().toURL());
-
 			// Load RDD using spatial query (bbox)
 			JavaPairRDD<GeoWaveInputKey, SimpleFeature> javaRdd = GeoWaveRDD.rddForSimpleFeatures(
 					context.sc(),
-					dataStore,
-					query);
+					dataStore);
 
 			long count = javaRdd.count();
 			LOGGER.warn(
 					"DataStore loaded into RDD with " + count + " features.");
-
-			// Verify RDD count matches expected count
-			Assert.assertEquals(
-					expectedResults.count,
-					count);
 
 			// Test the RDD to Schema mapper
 			SimpleFeatureDataFrame sfDataFrame = new SimpleFeatureDataFrame(
@@ -170,26 +132,21 @@ public class GeoWaveJavaSparkSQLIT extends
 
 			df.createOrReplaceTempView(
 					"features");
-			
+
 			String bbox = "POLYGON ((-94 34, -93 34, -93 35, -94 35, -94 34))";
-			
-//			Dataset<Row> results = df.selectExpr("GF_CONTAINS('" + bbox + ", geom')");
-			
+
 			Dataset<Row> results = spark.sql(
-					"SELECT * FROM features WHERE GF_CONTAINS('" + bbox + ", geom')");
-			
-			LOGGER.warn("Got " + results.count() + " for gfcontains test");
+					"SELECT * FROM features WHERE geomContains('" + bbox + "', geom)");
 
-			Dataset<String> geomDS = results.map(
-					(MapFunction<Row, String>) row -> "Date: " + row.getInt(3) + "/" + row.getInt(4) + "/" + row.getInt(5),
-					Encoders.STRING());
+			LOGGER.warn(
+					"Got " + results.count() + " for geomContains test");
 
-			geomDS.show(10);
 		}
 		catch (final Exception e) {
 			e.printStackTrace();
 			TestUtils.deleteAll(
 					dataStore);
+			spark.close();
 			context.close();
 			Assert.fail(
 					"Error occurred while testing a bounding box query of spatial index: '" + e.getLocalizedMessage()
@@ -200,6 +157,7 @@ public class GeoWaveJavaSparkSQLIT extends
 		TestUtils.deleteAll(
 				dataStore);
 
+		spark.close();
 		context.close();
 	}
 

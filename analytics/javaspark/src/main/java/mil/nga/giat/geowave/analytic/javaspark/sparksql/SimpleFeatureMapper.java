@@ -15,12 +15,17 @@ import org.opengis.feature.simple.SimpleFeature;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.WKBReader;
 import com.vividsolutions.jts.io.WKBWriter;
+import com.vividsolutions.jts.io.WKTReader;
+import com.vividsolutions.jts.io.WKTWriter;
 
 public class SimpleFeatureMapper implements
 		Function<SimpleFeature, Row>
 {
 	public static WKBWriter wkbWriter = new WKBWriter();
 	public static WKBReader wkbReader = new WKBReader();
+
+	public static WKTWriter wktWriter = new WKTWriter();
+	public static WKTReader wktReader = new WKTReader();
 
 	private final StructType schema;
 	
@@ -40,7 +45,7 @@ public class SimpleFeatureMapper implements
 					i);
 			if (structField.name().equals(
 					"geom")) {
-				fields[i] = wkbWriter.write(
+				fields[i] = wktWriter.write(
 						(Geometry) feature.getAttribute(
 								i));
 			}

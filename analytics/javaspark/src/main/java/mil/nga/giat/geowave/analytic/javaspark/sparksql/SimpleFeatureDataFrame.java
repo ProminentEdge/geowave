@@ -7,6 +7,7 @@ import java.util.List;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.sql.Dataset;
+
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.DataType;
@@ -138,10 +139,10 @@ public class SimpleFeatureDataFrame
 			dataTypeOut = DataTypes.TimestampType;
 		}
 
-		// Custom geometry types get WKB encoding
+		// Custom geometry types get WKT encoding
 		else if (Geometry.class.isAssignableFrom(
 				attrDesc.getType().getBinding())) {
-			dataTypeOut = DataTypes.BinaryType;
+			dataTypeOut = DataTypes.StringType;
 			isGeom = true;
 		}
 
