@@ -114,7 +114,7 @@ public class GeoWaveJavaSparkSQLIT extends
 			LOGGER.warn(
 					"DataStore loaded into RDD with " + count + " features.");
 
-			// Test the RDD to Schema mapper
+			// Create a DataFrame from the RDD
 			SimpleFeatureDataFrame sfDataFrame = new SimpleFeatureDataFrame(
 					spark,
 					dataStore,
@@ -123,10 +123,8 @@ public class GeoWaveJavaSparkSQLIT extends
 			LOGGER.warn(
 					sfDataFrame.getSchema().json());
 
-			sfDataFrame.initRowRDD(
+			Dataset<Row> df = sfDataFrame.getDataFrame(
 					javaRdd);
-
-			Dataset<Row> df = sfDataFrame.createDataFrame();
 			df.show(
 					10);
 
@@ -137,9 +135,46 @@ public class GeoWaveJavaSparkSQLIT extends
 
 			Dataset<Row> results = spark.sql(
 					"SELECT * FROM features WHERE geomContains('" + bbox + "', geom)");
-
+			long containsCount = results.count();
 			LOGGER.warn(
-					"Got " + results.count() + " for geomContains test");
+					"Got " + containsCount + " for geomContains test");
+
+			results = spark.sql(
+					"SELECT * FROM features WHERE geomWithin(geom, '" + bbox + "')");
+			long withinCount = results.count();
+			LOGGER.warn(
+					"Got " + withinCount + " for geomWithin test");
+			
+			Assert.assertTrue(
+					"Within and Contains counts should be equal",
+					containsCount == withinCount);
+
+			// Test other spatial UDFs
+			String line1 = "LINESTRING(0 0, 10 10)";
+			String line2 = "LINESTRING(0 10, 10 0)";
+			Row result = spark.sql(
+					"SELECT geomIntersects('" + line1 + "', '" + line2 + "')").head();
+			
+			boolean intersect = result.getBoolean(
+					0);
+			LOGGER.warn(
+					"geomIntersects returned " + intersect);
+
+			Assert.assertTrue(
+					"Lines should intersect",
+					intersect);
+			
+			result = spark.sql(
+					"SELECT geomDisjoint('" + line1 + "', '" + line2 + "')").head();
+			
+			boolean disjoint = result.getBoolean(
+					0);
+			LOGGER.warn(
+					"geomDisjoint returned " + disjoint);
+
+			Assert.assertFalse(
+					"Lines should not be disjoint",
+					disjoint);
 
 		}
 		catch (final Exception e) {

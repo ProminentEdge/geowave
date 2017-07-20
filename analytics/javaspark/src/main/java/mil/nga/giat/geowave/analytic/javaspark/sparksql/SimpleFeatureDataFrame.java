@@ -7,7 +7,6 @@ import java.util.List;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.sql.Dataset;
-
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.DataType;
@@ -36,7 +35,8 @@ public class SimpleFeatureDataFrame
 	private final SparkSession sparkSession;
 	private final SimpleFeatureType featureType;
 	private StructType schema;
-	private JavaRDD<Row> rowRDD;
+	private JavaRDD<Row> rowRDD = null;
+	private Dataset<Row> dataFrame = null;
 
 	public SimpleFeatureDataFrame(
 			final SparkSession sparkSession,
@@ -67,19 +67,32 @@ public class SimpleFeatureDataFrame
 		return rowRDD;
 	}
 
-	public void initRowRDD(
+	public Dataset<Row> getDataFrame(
 			JavaPairRDD<GeoWaveInputKey, SimpleFeature> pairRDD ) {
-		SimpleFeatureMapper mapper = new SimpleFeatureMapper(
-				schema);
+		if (rowRDD == null) {
+			SimpleFeatureMapper mapper = new SimpleFeatureMapper(
+					schema);
 
-		rowRDD = pairRDD.values().map(
-				mapper);
+			rowRDD = pairRDD.values().map(
+					mapper);
+		}
+
+		if (dataFrame == null) {
+			dataFrame = sparkSession.createDataFrame(
+					rowRDD,
+					schema);
+		}
+
+		return dataFrame;
 	}
 
-	public Dataset<Row> createDataFrame() {
-		return sparkSession.createDataFrame(
-				rowRDD,
-				schema);
+	public Dataset<Row> resetDataFrame(
+			JavaPairRDD<GeoWaveInputKey, SimpleFeature> pairRDD ) {
+		rowRDD = null;
+		dataFrame = null;
+
+		return getDataFrame(
+				pairRDD);
 	}
 
 	private static StructType schemaFromFeatureType(
