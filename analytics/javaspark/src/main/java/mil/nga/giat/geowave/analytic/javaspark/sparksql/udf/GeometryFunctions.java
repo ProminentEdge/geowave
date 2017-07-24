@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.io.ParseException;
 
 import mil.nga.giat.geowave.analytic.javaspark.sparksql.SimpleFeatureMapper;
 
@@ -32,7 +31,7 @@ public class GeometryFunctions
 						return geom1.equals(
 								geom2);
 					}
-					catch (ParseException ex) {
+					catch (Exception ex) {
 						LOGGER.error(ex.getMessage());
 						return false;
 					}
@@ -53,7 +52,7 @@ public class GeometryFunctions
 						return geom1.contains(
 								geom2);
 					}
-					catch (ParseException ex) {
+					catch (Exception ex) {
 						LOGGER.error(ex.getMessage());
 						return false;
 					}
@@ -74,7 +73,7 @@ public class GeometryFunctions
 						return geom1.within(
 								geom2);
 					}
-					catch (ParseException ex) {
+					catch (Exception ex) {
 						LOGGER.error(ex.getMessage());
 						return false;
 					}
@@ -95,7 +94,7 @@ public class GeometryFunctions
 						return geom1.intersects(
 								geom2);
 					}
-					catch (ParseException ex) {
+					catch (Exception ex) {
 						LOGGER.error(ex.getMessage());
 						return false;
 					}
@@ -116,7 +115,7 @@ public class GeometryFunctions
 						return geom1.crosses(
 								geom2);
 					}
-					catch (ParseException ex) {
+					catch (Exception ex) {
 						LOGGER.error(ex.getMessage());
 						return false;
 					}
@@ -137,7 +136,7 @@ public class GeometryFunctions
 						return geom1.touches(
 								geom2);
 					}
-					catch (ParseException ex) {
+					catch (Exception ex) {
 						LOGGER.error(ex.getMessage());
 						return false;
 					}
@@ -158,7 +157,7 @@ public class GeometryFunctions
 						return geom1.covers(
 								geom2);
 					}
-					catch (ParseException ex) {
+					catch (Exception ex) {
 						LOGGER.error(ex.getMessage());
 						return false;
 					}
@@ -179,7 +178,7 @@ public class GeometryFunctions
 						return geom1.disjoint(
 								geom2);
 					}
-					catch (ParseException ex) {
+					catch (Exception ex) {
 						LOGGER.error(ex.getMessage());
 						return false;
 					}
@@ -200,7 +199,7 @@ public class GeometryFunctions
 						return geom1.overlaps(
 								geom2);
 					}
-					catch (ParseException ex) {
+					catch (Exception ex) {
 						LOGGER.error(ex.getMessage());
 						return false;
 					}
