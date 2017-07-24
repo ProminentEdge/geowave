@@ -72,6 +72,8 @@ public class SparkSqlCommand extends
 				configFile,
 				sql,
 				sparkSqlOptions.getOutputStoreName());
+		
+		LOGGER.warn("Converted SQL: " + convertedSql);
 
 		SqlQueryRunner sqlRunner = new SqlQueryRunner();
 		sqlRunner.setInputDataStore1(inputDataStore1);
@@ -119,11 +121,13 @@ public class SparkSqlCommand extends
 			if (token.equalsIgnoreCase("from")) {
 				if (tokenizer.hasMoreTokens()) {
 					inputStoreInfo1 = tokenizer.nextToken();
+					LOGGER.warn("Input store info (1): " + inputStoreInfo1);
 				}
 			}
 			else if (token.equalsIgnoreCase("join")) {
 				if (tokenizer.hasMoreTokens()) {
 					inputStoreInfo2 = tokenizer.nextToken();
+					LOGGER.warn("Input store info (2): " + inputStoreInfo2);
 				}
 			}
 		}
@@ -138,6 +142,9 @@ public class SparkSqlCommand extends
 				inputStoreName = infoParts[0];
 				adapterName = infoParts[1];
 			}
+			
+			LOGGER.warn("Input store (1): " + inputStoreName);
+			LOGGER.warn("Input adapter (1): " + adapterName);
 
 			final StoreLoader inputStoreLoader = new StoreLoader(
 					inputStoreName);
@@ -166,6 +173,9 @@ public class SparkSqlCommand extends
 				inputStoreName = infoParts[0];
 				adapterName = infoParts[1];
 			}
+			
+			LOGGER.warn("Input store (2): " + inputStoreName);
+			LOGGER.warn("Input adapter (2): " + adapterName);
 
 			final StoreLoader inputStoreLoader = new StoreLoader(
 					inputStoreName);
@@ -185,7 +195,7 @@ public class SparkSqlCommand extends
 					SqlQueryRunner.TEMP2);
 		}
 
-		if (outputDataStore == null) {
+		if (outputStoreName != null) {
 			final StoreLoader outputStoreLoader = new StoreLoader(
 					outputStoreName);
 			if (!outputStoreLoader.loadFromConfig(configFile)) {
