@@ -285,7 +285,7 @@ public class GeoWaveJavaSparkSQLIT extends
 			
 			// Do a spatial join to find the overlap
 			Dataset<Row> results = spark.sql(
-					"SELECT left.geom FROM left INNER JOIN right ON geomIntersects(left.geom, right.geom)");
+					"SELECT distinct left.geom FROM left INNER JOIN right ON geomIntersects(left.geom, right.geom)");
 
 			long overlapCount = results.count();
 			LOGGER.warn(
