@@ -29,8 +29,7 @@ import mil.nga.giat.geowave.mapreduce.input.GeoWaveInputKey;
 
 public class SimpleFeatureDataFrame
 {
-	private static Logger LOGGER = LoggerFactory.getLogger(
-			SimpleFeatureDataFrame.class);
+	private static Logger LOGGER = LoggerFactory.getLogger(SimpleFeatureDataFrame.class);
 
 	private final SparkSession sparkSession;
 	private final SimpleFeatureType featureType;
@@ -48,11 +47,9 @@ public class SimpleFeatureDataFrame
 				dataStore,
 				adapterId);
 
-		schema = schemaFromFeatureType(
-				featureType);
+		schema = schemaFromFeatureType(featureType);
 
-		GeometryFunctions.registerGeometryFunctions(
-				sparkSession);
+		GeometryFunctions.registerGeometryFunctions(sparkSession);
 	}
 
 	public SimpleFeatureType getFeatureType() {
@@ -91,8 +88,7 @@ public class SimpleFeatureDataFrame
 		rowRDD = null;
 		dataFrame = null;
 
-		return getDataFrame(
-				pairRDD);
+		return getDataFrame(pairRDD);
 	}
 
 	private static StructType schemaFromFeatureType(
@@ -100,8 +96,7 @@ public class SimpleFeatureDataFrame
 		List<StructField> fields = new ArrayList<>();
 
 		for (AttributeDescriptor attrDesc : featureType.getAttributeDescriptors()) {
-			SimpleFeatureDataType sfDataType = attrDescToDataType(
-					attrDesc);
+			SimpleFeatureDataType sfDataType = attrDescToDataType(attrDesc);
 
 			String fieldName = (sfDataType.isGeom() ? "geom" : attrDesc.getName().getLocalPart());
 
@@ -110,12 +105,10 @@ public class SimpleFeatureDataFrame
 					sfDataType.getDataType(),
 					true);
 
-			fields.add(
-					field);
+			fields.add(field);
 		}
 
-		return DataTypes.createStructType(
-				fields);
+		return DataTypes.createStructType(fields);
 	}
 
 	private static SimpleFeatureDataType attrDescToDataType(
@@ -153,8 +146,7 @@ public class SimpleFeatureDataFrame
 		}
 
 		// Custom geometry types get WKT encoding
-		else if (Geometry.class.isAssignableFrom(
-				attrDesc.getType().getBinding())) {
+		else if (Geometry.class.isAssignableFrom(attrDesc.getType().getBinding())) {
 			dataTypeOut = DataTypes.StringType;
 			isGeom = true;
 		}

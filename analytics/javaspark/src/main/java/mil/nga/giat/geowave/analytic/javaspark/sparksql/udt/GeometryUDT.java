@@ -18,19 +18,17 @@ import com.vividsolutions.jts.io.ParseException;
 public abstract class GeometryUDT<T extends Geometry> extends
 		UserDefinedType<T>
 {
-	protected static StructType dataType;
+	protected StructType dataType;
 
 	private static WKTReader2 wktReader = new WKTReader2();
 	private static WKTWriter2 wktWriter = new WKTWriter2();
 
 	public GeometryUDT() {
-		dataType = new StructType();
-		dataType.add(
-				new StructField(
-						"geom",
-						DataTypes.StringType,
-						false,
-						null));
+		dataType = new StructType().add(new StructField(
+				"geom",
+				DataTypes.StringType,
+				false,
+				null));
 	}
 
 	@Override
@@ -46,8 +44,7 @@ public abstract class GeometryUDT<T extends Geometry> extends
 					DataTypes.StringType);
 
 			try {
-				Geometry geom = (T) wktReader.read(
-						geomString);
+				Geometry geom = (T) wktReader.read(geomString);
 
 				if (geom instanceof Point) {
 					geomWrapper = (T) new PointWrapper(
@@ -58,10 +55,6 @@ public abstract class GeometryUDT<T extends Geometry> extends
 			catch (ParseException e) {
 				e.printStackTrace();
 			}
-
-			if (geomWrapper != null) {
-				return geomWrapper;
-			}
 		}
 
 		throw new IllegalStateException(
@@ -71,16 +64,14 @@ public abstract class GeometryUDT<T extends Geometry> extends
 	@Override
 	public InternalRow serialize(
 			T geom ) {
-		String geomString = wktWriter.write(
-				geom);
+		String geomString = wktWriter.write(geom);
 
 		InternalRow row = new GenericInternalRow(
 				dataType.size());
 
 		row.update(
 				0,
-				UTF8String.fromString(
-						geomString));
+				UTF8String.fromString(geomString));
 
 		return row;
 	}

@@ -13,7 +13,6 @@ import org.slf4j.LoggerFactory;
 
 import mil.nga.giat.geowave.analytic.javaspark.GeoWaveRDD;
 import mil.nga.giat.geowave.core.index.ByteArrayId;
-import mil.nga.giat.geowave.core.index.StringUtils;
 import mil.nga.giat.geowave.core.store.CloseableIterator;
 import mil.nga.giat.geowave.core.store.adapter.DataAdapter;
 import mil.nga.giat.geowave.core.store.operations.remote.options.DataStorePluginOptions;
@@ -22,8 +21,7 @@ import mil.nga.giat.geowave.mapreduce.input.GeoWaveInputKey;
 
 public class SqlQueryRunner
 {
-	private final static Logger LOGGER = LoggerFactory.getLogger(
-			SqlQueryRunner.class);
+	private final static Logger LOGGER = LoggerFactory.getLogger(SqlQueryRunner.class);
 
 	private String appName = "SqlQueryRunner";
 	private String master = "local[*]";
@@ -45,13 +43,9 @@ public class SqlQueryRunner
 	public SqlQueryRunner() {}
 
 	private void initContext() {
-		spark = SparkSession
-				.builder()
-				.master(
-						master)
-				.appName(
-						appName)
-				.getOrCreate();
+		spark = SparkSession.builder().master(
+				master).appName(
+				appName).getOrCreate();
 
 		jsc = new JavaSparkContext(
 				spark.sparkContext());
@@ -72,8 +66,7 @@ public class SqlQueryRunner
 
 		// Validate inputs
 		if (inputDataStore1 == null) {
-			LOGGER.error(
-					"You must supply an input datastore!");
+			LOGGER.error("You must supply an input datastore!");
 			throw new IOException(
 					"You must supply an input datastore!");
 		}
@@ -86,10 +79,8 @@ public class SqlQueryRunner
 
 			while (adapterIt.hasNext()) {
 				DataAdapter adapter = adapterIt.next();
-				String adapterName = StringUtils.stringFromBinary(
-						adapter.getAdapterId().getBytes());
 
-				if (adapterName.equals(
+				if (adapter.getAdapterId().equals(
 						adapterId1)) {
 					adapterForQuery = adapter;
 					queryOptions = new QueryOptions(
@@ -100,27 +91,62 @@ public class SqlQueryRunner
 		}
 
 		// Load RDD from datastore
-		JavaPairRDD<GeoWaveInputKey, SimpleFeature> javaPairRdd = GeoWaveRDD.rddForSimpleFeatures(
+		JavaPairRDD<GeoWaveInputKey, SimpleFeature> rdd1 = GeoWaveRDD.rddForSimpleFeatures(
 				jsc.sc(),
 				inputDataStore1,
 				null,
 				queryOptions);
 
 		// Create a DataFrame from the Left RDD
-		SimpleFeatureDataFrame dataFrame = new SimpleFeatureDataFrame(
+		SimpleFeatureDataFrame dataFrame1 = new SimpleFeatureDataFrame(
 				spark,
 				inputDataStore1,
 				adapterId1);
 
-		Dataset<Row> dfTemp1 = dataFrame.getDataFrame(
-				javaPairRdd);
+		Dataset<Row> dfTemp1 = dataFrame1.getDataFrame(rdd1);
 
-		dfTemp1.createOrReplaceTempView(
-				"temp1");
+		dfTemp1.createOrReplaceTempView(TEMP1);
+
+		if (inputDataStore2 != null) {
+			queryOptions = null;
+			if (adapterId2 != null) {
+				// Retrieve the adapters
+				CloseableIterator<DataAdapter<?>> adapterIt = inputDataStore2.createAdapterStore().getAdapters();
+				DataAdapter adapterForQuery = null;
+
+				while (adapterIt.hasNext()) {
+					DataAdapter adapter = adapterIt.next();
+
+					if (adapter.getAdapterId().equals(
+							adapterId2)) {
+						adapterForQuery = adapter;
+						queryOptions = new QueryOptions(
+								adapterForQuery);
+						break;
+					}
+				}
+			}
+
+			// Load RDD from datastore
+			JavaPairRDD<GeoWaveInputKey, SimpleFeature> rdd2 = GeoWaveRDD.rddForSimpleFeatures(
+					jsc.sc(),
+					inputDataStore2,
+					null,
+					queryOptions);
+
+			// Create a DataFrame from the Left RDD
+			SimpleFeatureDataFrame dataFrame2 = new SimpleFeatureDataFrame(
+					spark,
+					inputDataStore2,
+					adapterId2);
+
+			Dataset<Row> dfTemp2 = dataFrame2.getDataFrame(rdd2);
+
+			dfTemp2.createOrReplaceTempView(TEMP2);
+		}
 
 		// Run the query
-		Dataset<Row> results = spark.sql(
-				sql);
+		Dataset<Row> results = spark.sql(sql);
 
 		return results;
 	}

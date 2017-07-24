@@ -28,7 +28,7 @@ public class SimpleFeatureMapper implements
 	public static WKTReader wktReader = new WKTReader();
 
 	private final StructType schema;
-	
+
 	public SimpleFeatureMapper(
 			StructType schema ) {
 		this.schema = schema;
@@ -41,27 +41,21 @@ public class SimpleFeatureMapper implements
 		Object[] fields = new Serializable[schema.size()];
 
 		for (int i = 0; i < schema.size(); i++) {
-			StructField structField = schema.apply(
-					i);
+			StructField structField = schema.apply(i);
 			if (structField.name().equals(
 					"geom")) {
-				fields[i] = wktWriter.write(
-						(Geometry) feature.getAttribute(
-								i));
+				fields[i] = wktWriter.write((Geometry) feature.getAttribute(i));
 			}
 			else if (structField.dataType() == DataTypes.TimestampType) {
 				fields[i] = ((Timestamp) new Timestamp(
-						((Date) feature.getAttribute(
-								i)).getTime()));
+						((Date) feature.getAttribute(i)).getTime()));
 			}
 			else if (structField.dataType() != null) {
-				fields[i] = (Serializable) feature.getAttribute(
-						i);
+				fields[i] = (Serializable) feature.getAttribute(i);
 			}
 		}
 
-		return RowFactory.create(
-				fields);
+		return RowFactory.create(fields);
 	}
 
 }
