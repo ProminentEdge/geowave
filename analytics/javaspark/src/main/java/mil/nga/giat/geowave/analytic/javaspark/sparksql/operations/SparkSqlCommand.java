@@ -93,9 +93,11 @@ public class SparkSqlCommand extends
 		Dataset<Row> results = sqlRunner.run();
 
 		stopwatch.stop();
+		
 		LOGGER.warn("Spark SQL query took " + stopwatch.getTimeString());
-
 		LOGGER.warn("   and got " + results.count() + " results");
+		
+		results.show(10, false);
 
 		if (outputDataStore != null) {
 			// TODO: Write results to output store

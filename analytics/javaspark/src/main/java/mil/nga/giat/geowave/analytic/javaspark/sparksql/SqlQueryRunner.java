@@ -102,8 +102,11 @@ public class SqlQueryRunner
 				spark,
 				inputDataStore1,
 				adapterId1);
+		
+		LOGGER.warn(dataFrame1.getSchema().json());
 
 		Dataset<Row> dfTemp1 = dataFrame1.getDataFrame(rdd1);
+		dfTemp1.show(10, false);
 
 		dfTemp1.createOrReplaceTempView(TEMP1);
 
@@ -140,7 +143,10 @@ public class SqlQueryRunner
 					inputDataStore2,
 					adapterId2);
 
+			LOGGER.warn(dataFrame2.getSchema().json());
+
 			Dataset<Row> dfTemp2 = dataFrame2.getDataFrame(rdd2);
+			dfTemp2.show(10, false);
 
 			dfTemp2.createOrReplaceTempView(TEMP2);
 		}
