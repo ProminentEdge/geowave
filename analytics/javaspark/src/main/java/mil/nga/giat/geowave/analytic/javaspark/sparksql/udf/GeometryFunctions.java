@@ -7,12 +7,11 @@ import org.slf4j.LoggerFactory;
 
 import com.vividsolutions.jts.geom.Geometry;
 
-import mil.nga.giat.geowave.analytic.javaspark.sparksql.SimpleFeatureMapper;
+import mil.nga.giat.geowave.analytic.javaspark.sparksql.GeometrySerializer;
 
 public class GeometryFunctions
 {
-	private final static Logger LOGGER = LoggerFactory.getLogger(
-			GeometryFunctions.class);
+	private final static Logger LOGGER = LoggerFactory.getLogger(GeometryFunctions.class);
 
 	public static void registerGeometryFunctions(
 			SparkSession spark ) {
@@ -23,9 +22,9 @@ public class GeometryFunctions
 						String geomString1,
 						String geomString2 ) -> {
 					try {
-						Geometry geom1 = SimpleFeatureMapper.wktReader.read(
+						Geometry geom1 = GeometrySerializer.decode(
 								geomString1);
-						Geometry geom2 = SimpleFeatureMapper.wktReader.read(
+						Geometry geom2 = GeometrySerializer.decode(
 								geomString2);
 
 						return geom1.equals(
@@ -44,9 +43,9 @@ public class GeometryFunctions
 						String geomString1,
 						String geomString2 ) -> {
 					try {
-						Geometry geom1 = SimpleFeatureMapper.wktReader.read(
+						Geometry geom1 = GeometrySerializer.decode(
 								geomString1);
-						Geometry geom2 = SimpleFeatureMapper.wktReader.read(
+						Geometry geom2 = GeometrySerializer.decode(
 								geomString2);
 
 						return geom1.contains(
@@ -65,9 +64,9 @@ public class GeometryFunctions
 						String geomString1,
 						String geomString2 ) -> {
 					try {
-						Geometry geom1 = SimpleFeatureMapper.wktReader.read(
+						Geometry geom1 = GeometrySerializer.decode(
 								geomString1);
-						Geometry geom2 = SimpleFeatureMapper.wktReader.read(
+						Geometry geom2 = GeometrySerializer.decode(
 								geomString2);
 
 						return geom1.within(
@@ -86,9 +85,9 @@ public class GeometryFunctions
 						String geomString1,
 						String geomString2 ) -> {
 					try {
-						Geometry geom1 = SimpleFeatureMapper.wktReader.read(
+						Geometry geom1 = GeometrySerializer.decode(
 								geomString1);
-						Geometry geom2 = SimpleFeatureMapper.wktReader.read(
+						Geometry geom2 = GeometrySerializer.decode(
 								geomString2);
 
 						return geom1.intersects(
@@ -107,9 +106,9 @@ public class GeometryFunctions
 						String geomString1,
 						String geomString2 ) -> {
 					try {
-						Geometry geom1 = SimpleFeatureMapper.wktReader.read(
+						Geometry geom1 = GeometrySerializer.decode(
 								geomString1);
-						Geometry geom2 = SimpleFeatureMapper.wktReader.read(
+						Geometry geom2 = GeometrySerializer.decode(
 								geomString2);
 
 						return geom1.crosses(
@@ -128,9 +127,9 @@ public class GeometryFunctions
 						String geomString1,
 						String geomString2 ) -> {
 					try {
-						Geometry geom1 = SimpleFeatureMapper.wktReader.read(
+						Geometry geom1 = GeometrySerializer.decode(
 								geomString1);
-						Geometry geom2 = SimpleFeatureMapper.wktReader.read(
+						Geometry geom2 = GeometrySerializer.decode(
 								geomString2);
 
 						return geom1.touches(
@@ -149,9 +148,9 @@ public class GeometryFunctions
 						String geomString1,
 						String geomString2 ) -> {
 					try {
-						Geometry geom1 = SimpleFeatureMapper.wktReader.read(
+						Geometry geom1 = GeometrySerializer.decode(
 								geomString1);
-						Geometry geom2 = SimpleFeatureMapper.wktReader.read(
+						Geometry geom2 = GeometrySerializer.decode(
 								geomString2);
 
 						return geom1.covers(
@@ -170,9 +169,9 @@ public class GeometryFunctions
 						String geomString1,
 						String geomString2 ) -> {
 					try {
-						Geometry geom1 = SimpleFeatureMapper.wktReader.read(
+						Geometry geom1 = GeometrySerializer.decode(
 								geomString1);
-						Geometry geom2 = SimpleFeatureMapper.wktReader.read(
+						Geometry geom2 = GeometrySerializer.decode(
 								geomString2);
 
 						return geom1.disjoint(
@@ -191,9 +190,9 @@ public class GeometryFunctions
 						String geomString1,
 						String geomString2 ) -> {
 					try {
-						Geometry geom1 = SimpleFeatureMapper.wktReader.read(
+						Geometry geom1 = GeometrySerializer.decode(
 								geomString1);
-						Geometry geom2 = SimpleFeatureMapper.wktReader.read(
+						Geometry geom2 = GeometrySerializer.decode(
 								geomString2);
 
 						return geom1.overlaps(

@@ -18,8 +18,8 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.util.Stopwatch;
 
 import mil.nga.giat.geowave.analytic.javaspark.GeoWaveRDD;
+import mil.nga.giat.geowave.analytic.javaspark.sparksql.GeometrySerializer;
 import mil.nga.giat.geowave.analytic.javaspark.sparksql.SimpleFeatureDataFrame;
-import mil.nga.giat.geowave.analytic.javaspark.sparksql.SimpleFeatureMapper;
 import mil.nga.giat.geowave.core.geotime.store.query.SpatialQuery;
 import mil.nga.giat.geowave.core.store.operations.remote.options.DataStorePluginOptions;
 import mil.nga.giat.geowave.mapreduce.input.GeoWaveInputKey;
@@ -36,16 +36,8 @@ public class GeoWaveJavaSparkSQLIT extends
 {
 	private final static Logger LOGGER = LoggerFactory.getLogger(GeoWaveJavaSparkSQLIT.class);
 
-	private static final String TEST_BOX_FILTER_FILE = TEST_FILTER_PACKAGE + "Box-Filter.shp";
-	private static final String TEST_POLYGON_FILTER_FILE = TEST_FILTER_PACKAGE + "Polygon-Filter.shp";
-	private static final String HAIL_EXPECTED_BOX_FILTER_RESULTS_FILE = HAIL_TEST_CASE_PACKAGE + "hail-box-filter.shp";
-	private static final String HAIL_EXPECTED_POLYGON_FILTER_RESULTS_FILE = HAIL_TEST_CASE_PACKAGE
-			+ "hail-polygon-filter.shp";
-	private static final int HAIL_COUNT = 13742;
-	private static final int TORNADO_COUNT = 1196;
-
 	@GeoWaveTestStore(value = {
-		// GeoWaveStoreType.ACCUMULO,
+		GeoWaveStoreType.ACCUMULO,
 		GeoWaveStoreType.HBASE
 	})
 	protected DataStorePluginOptions dataStore;
@@ -187,7 +179,7 @@ public class GeoWaveJavaSparkSQLIT extends
 		try {
 			// Load first RDD using spatial query (bbox)
 			String leftBboxStr = "POLYGON ((-94 34, -93 34, -93 35, -94 35, -94 34))";
-			Geometry leftBox = SimpleFeatureMapper.wktReader.read(leftBboxStr);
+			Geometry leftBox = GeometrySerializer.decode(leftBboxStr);
 			SpatialQuery leftBoxQuery = new SpatialQuery(
 					leftBox);
 
@@ -213,7 +205,7 @@ public class GeoWaveJavaSparkSQLIT extends
 
 			// Load second RDD using spatial query (bbox) for 1/2-deg overlap
 			String rightBboxStr = "POLYGON ((-93.5 34, -92.5 34, -92.5 35, -93.5 35, -93.5 34))";
-			Geometry rightBox = SimpleFeatureMapper.wktReader.read(rightBboxStr);
+			Geometry rightBox = GeometrySerializer.decode(rightBboxStr);
 			SpatialQuery rightBoxQuery = new SpatialQuery(
 					rightBox);
 

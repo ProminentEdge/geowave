@@ -11,21 +11,15 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.opengis.feature.simple.SimpleFeature;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.io.WKBReader;
-import com.vividsolutions.jts.io.WKBWriter;
-import com.vividsolutions.jts.io.WKTReader;
-import com.vividsolutions.jts.io.WKTWriter;
 
 public class SimpleFeatureMapper implements
 		Function<SimpleFeature, Row>
 {
-	public static WKBWriter wkbWriter = new WKBWriter();
-	public static WKBReader wkbReader = new WKBReader();
-
-	public static WKTWriter wktWriter = new WKTWriter();
-	public static WKTReader wktReader = new WKTReader();
+	private static Logger LOGGER = LoggerFactory.getLogger(SimpleFeatureDataFrame.class);
 
 	private final StructType schema;
 
@@ -44,7 +38,7 @@ public class SimpleFeatureMapper implements
 			StructField structField = schema.apply(i);
 			if (structField.name().equals(
 					"geom")) {
-				fields[i] = wktWriter.write((Geometry) feature.getAttribute(i));
+				fields[i] = GeometrySerializer.encode((Geometry) feature.getAttribute(i));
 			}
 			else if (structField.dataType() == DataTypes.TimestampType) {
 				fields[i] = ((Timestamp) new Timestamp(
@@ -52,6 +46,9 @@ public class SimpleFeatureMapper implements
 			}
 			else if (structField.dataType() != null) {
 				fields[i] = (Serializable) feature.getAttribute(i);
+			}
+			else {
+				LOGGER.error("Unexpected attribute in field(" + structField.name() + "): " + feature.getAttribute(i));
 			}
 		}
 
