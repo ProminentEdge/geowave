@@ -72,7 +72,7 @@ public class SparkSqlCommand extends
 				configFile,
 				sql,
 				sparkSqlOptions.getOutputStoreName());
-		
+
 		LOGGER.warn("Converted SQL: " + convertedSql);
 
 		SqlQueryRunner sqlRunner = new SqlQueryRunner();
@@ -93,11 +93,13 @@ public class SparkSqlCommand extends
 		Dataset<Row> results = sqlRunner.run();
 
 		stopwatch.stop();
-		
+
 		LOGGER.warn("Spark SQL query took " + stopwatch.getTimeString());
 		LOGGER.warn("   and got " + results.count() + " results");
-		
-		results.show(10, false);
+
+		results.show(
+				10,
+				false);
 
 		if (outputDataStore != null) {
 			// TODO: Write results to output store
@@ -144,7 +146,7 @@ public class SparkSqlCommand extends
 				inputStoreName = infoParts[0];
 				adapterName = infoParts[1];
 			}
-			
+
 			LOGGER.warn("Input store (1): " + inputStoreName);
 			LOGGER.warn("Input adapter (1): " + adapterName);
 
@@ -175,7 +177,7 @@ public class SparkSqlCommand extends
 				inputStoreName = infoParts[0];
 				adapterName = infoParts[1];
 			}
-			
+
 			LOGGER.warn("Input store (2): " + inputStoreName);
 			LOGGER.warn("Input adapter (2): " + adapterName);
 
