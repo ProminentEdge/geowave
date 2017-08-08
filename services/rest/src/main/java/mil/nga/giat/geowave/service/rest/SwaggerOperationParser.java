@@ -19,7 +19,8 @@ public class SwaggerOperationParser<T>
 	/**
 	 * Reads Geowave CLI operations and parses class fields for particular
 	 * annotations ( @Parameter and @ParametersDelegate from JCommander) The
-	 * parsed data is then used to build up JSON objects that are used by SwaggerApiParser
+	 * parsed data is then used to build up JSON objects that are used by
+	 * SwaggerApiParser
 	 */
 
 	private final DefaultOperation<T> operation;
@@ -29,12 +30,14 @@ public class SwaggerOperationParser<T>
 		return this.json_obj;
 	}
 
-	public SwaggerOperationParser( DefaultOperation<T> op ) {
+	public SwaggerOperationParser(
+			DefaultOperation<T> op ) {
 		this.operation = op;
 		this.json_obj = parseParameters();
 	}
 
-	public JsonObject processField( Field f ) {
+	public JsonObject processField(
+			Field f ) {
 		Parameter parameter = null;
 		try {
 			parameter = f.getAnnotation(Parameter.class);
@@ -235,7 +238,13 @@ public class SwaggerOperationParser<T>
 		else if (type == Integer.class || type == int.class) {
 			return "integer";
 		}
+		else if (type == Long.class || type == long.class) {
+			return "integer";
+		}
 		else if (type == Float.class || type == float.class) {
+			return "nummber";
+		}
+		else if (type == Double.class || type == double.class) {
 			return "nummber";
 		}
 		else if (type == Boolean.class || type == boolean.class) {

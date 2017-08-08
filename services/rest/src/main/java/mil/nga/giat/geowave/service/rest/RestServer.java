@@ -2,6 +2,7 @@ package mil.nga.giat.geowave.service.rest;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import org.reflections.Reflections;
 import org.restlet.Application;
@@ -9,14 +10,23 @@ import org.restlet.Component;
 import org.restlet.Context;
 import org.restlet.Restlet;
 import org.restlet.Server;
+import org.restlet.data.ChallengeScheme;
 import org.restlet.data.MediaType;
 import org.restlet.data.Protocol;
+import org.restlet.engine.Engine;
+import org.restlet.engine.security.AuthenticatorHelper;
 import org.restlet.resource.Get;
 import org.restlet.resource.ServerResource;
 import org.restlet.routing.Router;
+import org.restlet.security.ChallengeAuthenticator;
+import org.restlet.security.MapVerifier;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.restlet.ext.apispark.internal.conversion.swagger.v1_2.model.ApiDeclaration;
 import org.restlet.ext.jackson.JacksonRepresentation;
 import org.restlet.ext.swagger.SwaggerApplication;
+import org.restlet.ext.oauth.*;
 import org.restlet.ext.swagger.SwaggerSpecificationRestlet;
 import org.restlet.representation.FileRepresentation;
 import org.restlet.representation.Representation;
@@ -30,16 +40,37 @@ public class RestServer extends
 	private final ArrayList<RestRoute> availableRoutes;
 	private final ArrayList<String> unavailableCommands;
 
+	public static ChallengeScheme MySCHEME = new ChallengeScheme(
+			"This is my own challenge scheme",
+			"MySCHEME");
+
 	/**
 	 * Run the Restlet server (localhost:5152)
 	 */
 	public static void main(
 			final String[] args ) {
-		final RestServer server = new RestServer();
-		server.run(5152);
+		// final RestServer server = new RestServer();
+		// server.run(5152);
+
+		ApplicationContext springContext = new ClassPathXmlApplicationContext(
+				new String[] {
+					"ApplicationContext-Server.xml"
+				});
+
+		// obtain the Restlet component from the Spring context and start it
+		try {
+			((Component) springContext.getBean("top")).start();
+		}
+		catch (BeansException e) {
+			e.printStackTrace();
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	public RestServer() {
+
 		availableRoutes = new ArrayList<RestRoute>();
 		unavailableCommands = new ArrayList<String>();
 
@@ -85,7 +116,10 @@ public class RestServer extends
 		// Add paths for each command
 		final Router router = new Router();
 
-		SwaggerApiParser apiParser = new SwaggerApiParser("1.0.0", "GeoWave API", "REST API for GeoWave CLI commands");
+		SwaggerApiParser apiParser = new SwaggerApiParser(
+				"1.0.0",
+				"GeoWave API",
+				"REST API for GeoWave CLI commands");
 		for (final RestRoute route : availableRoutes) {
 
 			if (DefaultOperation.class.isAssignableFrom(route.getOperation())) {
@@ -94,9 +128,6 @@ public class RestServer extends
 						new GeoWaveOperationFinder(
 								(Class<? extends DefaultOperation<?>>) route.getOperation()));
 
-				Class<? extends DefaultOperation<?>> opClass = ((Class<? extends DefaultOperation<?>>) route
-						.getOperation());
-				
 				apiParser.AddRoute(route);
 			}
 			else {
@@ -105,8 +136,26 @@ public class RestServer extends
 						(Class<? extends ServerResource>) route.getOperation());
 			}
 		}
-		
+
 		apiParser.SerializeSwaggerJson("swagger.json");
+
+		List<AuthenticatorHelper> l = Engine.getInstance().getRegisteredAuthenticators();
+
+		// Guard the restlet with BASIC authentication.
+		ChallengeAuthenticator guard = new ChallengeAuthenticator(
+				null,
+				ChallengeScheme.HTTP_OAUTH,
+				"testRealm");
+		// Instantiates a Verifier of identifier/secret couples based on a
+		// simple Map.
+		MapVerifier mapVerifier = new MapVerifier();
+		// Load a single static login/secret pair.
+		mapVerifier.getLocalSecrets().put(
+				"login",
+				"secret".toCharArray());
+		guard.setVerifier(mapVerifier);
+
+		guard.setNext(RestServer.class);
 
 		// Provide basic 404 error page for unknown route
 		router.attachDefault(RestServer.class);
@@ -121,6 +170,27 @@ public class RestServer extends
 				attachSwaggerSpecificationRestlet(
 						router,
 						"swagger.json");
+
+				OAuthProxy googleProxy = new OAuthProxy(
+						getContext(),
+						false);
+				googleProxy.setClientId("88903973904-5akeigppadcr5ge2sb8vq3811oshrd6h.apps.googleusercontent.com");
+				googleProxy.setClientSecret("J2brEzLbp8GGlVLGTZPGwiyG");
+				googleProxy.setRedirectURI("http://localhost:5152/google");
+				googleProxy.setAuthorizationURI("https://accounts.google.com/o/oauth2/auth");
+				googleProxy.setTokenURI("https://accounts.google.com/o/oauth2/token");
+				googleProxy.setScope(new String[] {
+					"https://www.google.com/m8/feeds/"
+				});
+				googleProxy.setNext(GoogleContactsServerResource.class);
+
+				router.attach(
+						"google",
+						googleProxy);
+				// router.attachDefault(RestServer.class);
+				// router.attach("contacts",
+				// GoogleContactsServerResource.class);
+
 				return router;
 			};
 
@@ -159,6 +229,10 @@ public class RestServer extends
 
 		};
 		final Component component = new Component();
+		component.getClients().add(
+				Protocol.HTTP);
+		component.getClients().add(
+				Protocol.HTTPS);
 		component.getDefaultHost().attach(
 				"/",
 				myApp);
@@ -175,7 +249,6 @@ public class RestServer extends
 			System.out.println("Could not create Restlet server - is the port already bound?");
 		}
 	}
-
 
 	/**
 	 * A simple ServerResource to show if the route's operation does not extend
