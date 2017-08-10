@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import javax.servlet.Filter;
+import javax.servlet.ServletContext;
+
 import org.reflections.Reflections;
 import org.restlet.Application;
 import org.restlet.Component;
@@ -23,6 +26,7 @@ import org.restlet.security.MapVerifier;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.web.filter.DelegatingFilterProxy;
 import org.restlet.ext.apispark.internal.conversion.swagger.v1_2.model.ApiDeclaration;
 import org.restlet.ext.jackson.JacksonRepresentation;
 import org.restlet.ext.swagger.SwaggerApplication;
@@ -49,9 +53,11 @@ public class RestServer extends
 	 */
 	public static void main(
 			final String[] args ) {
-		// final RestServer server = new RestServer();
-		// server.run(5152);
-
+		//Router r = new Router();
+		final RestServer server = new RestServer();
+		//server.run(5152);
+		
+		//ServletContext servCont = (ServletContext)server.getContext().getServerDispatcher().getContext().getAttributes().get("org.restlet.ext.servlet.ServletContext");
 		ApplicationContext springContext = new ClassPathXmlApplicationContext(
 				new String[] {
 					"ApplicationContext-Server.xml"
@@ -60,6 +66,10 @@ public class RestServer extends
 		// obtain the Restlet component from the Spring context and start it
 		try {
 			((Component) springContext.getBean("top")).start();
+			//((Component) springContext.getBean("springSecurityFilterChain")).start();
+		
+			DelegatingFilterProxy p = new DelegatingFilterProxy((Filter) springContext.getBean("springSecurityFilterChain"));
+			//p.setTargetBeanName("springSecurityFilterChain");
 		}
 		catch (BeansException e) {
 			e.printStackTrace();
@@ -70,7 +80,7 @@ public class RestServer extends
 	}
 
 	public RestServer() {
-
+		
 		availableRoutes = new ArrayList<RestRoute>();
 		unavailableCommands = new ArrayList<String>();
 
@@ -166,7 +176,7 @@ public class RestServer extends
 			@Override
 			public Restlet createInboundRoot() {
 				router.setContext(getContext());
-
+			
 				attachSwaggerSpecificationRestlet(
 						router,
 						"swagger.json");

@@ -1,55 +1,54 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-    xmlns:security="http://www.springframework.org/schema/security"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://www.springframework.org/schema/beans
-                        http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
-                        http://www.springframework.org/schema/security
-		     			http://www.springframework.org/schema/security/spring-security-4.0.xsd">
-	<bean id="top" class="org.restlet.ext.spring.SpringComponent">
-	    <property name="server">
-	        <bean class="org.restlet.ext.spring.SpringServer">
-	            <constructor-arg value="http" />
-	            <constructor-arg value="5152" />
-	        </bean>
-	    </property>  
-	    <property name="defaultTarget" ref="default" />
-	</bean>
-	<bean id="default" class="org.restlet.ext.spring.SpringRouter">
-	    <property name="attachments">
-	        <map>
-	            <entry key="/v1" value-ref="root" />
-	        </map>
-	    </property>
-	</bean>
-	<bean id="root" class="org.restlet.ext.spring.SpringRouter">
-	    <property name="attachments">
-	        <map>
-	            <entry key="/users">
-	                <bean class="org.restlet.ext.spring.SpringFinder">
-	                    <lookup-method name="create"
+<b:beans xmlns:security="http://www.springframework.org/schema/security"
+		 xmlns:b="http://www.springframework.org/schema/beans"
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+							 http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd">
+	<b:bean id="top" class="org.restlet.ext.spring.SpringComponent">    
+	    <b:property name="server">
+	        <b:bean class="org.restlet.ext.spring.SpringServer">
+	            <b:constructor-arg value="http" />
+	            <b:constructor-arg value="5152" />
+	        </b:bean>
+	    </b:property>  
+	    <b:property name="defaultTarget" ref="default" />
+	</b:bean>
+	<b:bean id="default" class="org.restlet.ext.spring.SpringRouter">
+	    <b:property name="attachments">
+	        <b:map>
+	            <b:entry key="/v1" value-ref="root" />
+	        </b:map>
+	    </b:property>
+	</b:bean>
+	<b:bean id="root" class="org.restlet.ext.spring.SpringRouter">
+	    <b:property name="attachments">
+	        <b:map>
+	            <b:entry key="/users">
+	                <b:bean class="org.restlet.ext.spring.SpringFinder">
+	                    <b:lookup-method name="create"
 	                        bean="userResource" />
-	                </bean>
-	            </entry>
-	        </map>
-	    </property>
-	</bean>
-	<bean id="userResource"
+	                </b:bean>
+	            </b:entry>
+	        </b:map>
+	    </b:property>
+	</b:bean>
+	<b:bean id="userResource"
 	    class="mil.nga.giat.geowave.service.rest.GoogleContactsServerResource"
 	    scope="prototype">
-	</bean>
-	<security:http>
+	</b:bean>
+	<security:http auto-config="true">
 	    <security:http-basic />
 	    <security:form-login />
 	    <security:intercept-url pattern="/**" access="ROLE_USER"  />
   	</security:http>
-	
-  	<security:authentication-provider>
-    	<security:password-encoder hash="md5" />
-	    <security:user-service>
-	      <security:user name="user"
-			     password="baa7a52965b99778f38ef37f235e9053"
-	                     authorities="ROLE_USER" />
-	    </security:user-service>
-	</security:authentication-provider>
-</beans>
+	<security:authentication-manager>
+	  	<security:authentication-provider>
+	    	<security:password-encoder hash="md5" />
+		    <security:user-service>
+		      <security:user name="user"
+				     password="baa7a52965b99778f38ef37f235e9053"
+		                     authorities="ROLE_USER" />
+		    </security:user-service>
+		</security:authentication-provider>
+	</security:authentication-manager>
+</b:beans>
