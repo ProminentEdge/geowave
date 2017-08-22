@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParametersDelegate;
 
 import mil.nga.giat.geowave.core.cli.annotations.GeowaveOperation;
 import mil.nga.giat.geowave.core.cli.annotations.RestParameters;
@@ -22,6 +23,7 @@ import mil.nga.giat.geowave.core.cli.api.DefaultOperation;
 import mil.nga.giat.geowave.core.cli.api.OperationParams;
 import mil.nga.giat.geowave.core.cli.operations.config.options.ConfigOptions;
 import mil.nga.giat.geowave.core.cli.parser.ManualOperationParams;
+import scala.actors.threadpool.Arrays;
 
 public class GeoWaveOperationServiceWrapper<T> extends
 		ServerResource
@@ -37,7 +39,7 @@ public class GeoWaveOperationServiceWrapper<T> extends
 	@Get("json")
 	public T restGet()
 			throws Exception {
-		if (getClass().getAnnotation(
+		if (operation.getClass().getAnnotation(
 				GeowaveOperation.class).restEnabled() == GeowaveOperation.RestEnabledType.GET) {
 			return handleRequest(null);
 		}
@@ -51,7 +53,7 @@ public class GeoWaveOperationServiceWrapper<T> extends
 	public T restPost(
 			final Representation request )
 			throws Exception {
-		if (getClass().getAnnotation(
+		if (operation.getClass().getAnnotation(
 				GeowaveOperation.class).restEnabled() == GeowaveOperation.RestEnabledType.POST) {
 
 			final Form form = new Form(
@@ -82,19 +84,37 @@ public class GeoWaveOperationServiceWrapper<T> extends
 			throws MissingArgumentException {
 
 		for (final Field field : FieldUtils.getFieldsWithAnnotation(
-				getClass(),
+				// TODO Take out this loop?
+				operation.getClass(),
 				Parameter.class)) {
-			final Parameter parameter = field.getAnnotation(Parameter.class);
+			processField(
+					form,
+					field);
+
+		}
+	}
+
+	private Field processField(
+			final Form form,
+			final Field field )
+			throws MissingArgumentException {
+		final Parameter parameter = field.getAnnotation(Parameter.class);
+
+		ParametersDelegate parametersDelegate = null;
+		parametersDelegate = field.getAnnotation(ParametersDelegate.class);
+
+		if (parameter != null) {
 			if (field.getType() == String.class) {
-				final String value = (form == null) ? getQueryValue(field.getName()) : form.getFirstValue(field
-						.getName());
+				final String value = getFieldValue(
+						form,
+						field.getName());
 				if (value != null) {
 					field.setAccessible(true); // Get around restrictions on
 												// private fields. JCommander
 												// does this too.
 					try {
 						field.set(
-								this,
+								operation,
 								value);
 					}
 					catch (final IllegalAccessException e) {
@@ -108,13 +128,14 @@ public class GeoWaveOperationServiceWrapper<T> extends
 				}
 			}
 			else if ((field.getType() == Boolean.class) || (field.getType() == boolean.class)) {
-				final String value = (form == null) ? getQueryValue(field.getName()) : form.getFirstValue(field
-						.getName());
+				final String value = getFieldValue(
+						form,
+						field.getName());
 				if (value != null) {
 					field.setAccessible(true);
 					try {
 						field.set(
-								this,
+								operation,
 								Boolean.valueOf(value));
 					}
 					catch (final IllegalAccessException e) {
@@ -128,13 +149,14 @@ public class GeoWaveOperationServiceWrapper<T> extends
 				}
 			}
 			else if ((field.getType() == Integer.class) || (field.getType() == int.class)) {
-				final String value = (form == null) ? getQueryValue(field.getName()) : form.getFirstValue(field
-						.getName());
+				final String value = getFieldValue(
+						form,
+						field.getName());
 				if (value != null) {
 					field.setAccessible(true);
 					try {
 						field.set(
-								this,
+								operation,
 								Integer.valueOf(value));
 					}
 					catch (final IllegalAccessException e) {
@@ -148,35 +170,62 @@ public class GeoWaveOperationServiceWrapper<T> extends
 				}
 			}
 			else if (field.getType() == List.class) {
-				final RestParameters restParameters = field.getAnnotation(RestParameters.class);
-				if (restParameters == null) {
-					throw new RuntimeException(
-							"Missing RestParameters annotation on " + field);
-				}
-
 				field.setAccessible(true);
-				List<String> parameters;
+				String[] parameters = getFieldValues(
+						form,
+						field.getName());
+
 				try {
-					parameters = (List<String>) field.get(this);
+					field.set(
+							operation,
+							Arrays.asList(parameters));
 				}
 				catch (final IllegalAccessException e) {
 					throw new RuntimeException(
 							e);
-				}
-				for (final String name : restParameters.names()) {
-					final String value = (form == null) ? getQueryValue(name) : form.getFirstValue(name);
-					if (value == null) {
-						throw new MissingArgumentException(
-								name);
-					}
-					parameters.add(value);
 				}
 			}
 			else {
 				throw new RuntimeException(
 						"Unsupported format on field " + field);
 			}
+			return field;
 		}
+		else if (parametersDelegate != null) {
+			for (final Field f : FieldUtils.getAllFields(field.getType())) {
+				return processField(
+						form,
+						f);
+			}
+		}
+		return null;
+	}
+
+	private String[] getFieldValues(
+			final Form form,
+			final String name ) {
+		String[] val = null;
+		if (form != null) {
+			val = form.getValuesArray(name);
+		}
+		if (val == null || val.length == 0) {
+			val = getQuery().getValuesArray(
+					name);
+		}
+		return val;
+	}
+
+	private String getFieldValue(
+			final Form form,
+			final String name ) {
+		String val = null;
+		if (form != null) {
+			val = form.getFirstValue(name);
+		}
+		if (val == null) {
+			val = getQueryValue(name);
+		}
+		return val;
 	}
 
 	private T handleRequest(
@@ -214,7 +263,7 @@ public class GeoWaveOperationServiceWrapper<T> extends
 		}
 	}
 
-	private static class MissingArgumentException extends
+	public static class MissingArgumentException extends
 			Exception
 	{
 		/**
